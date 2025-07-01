@@ -87,14 +87,16 @@ def audio_tensor_to_base64(audio_tensor, sample_rate):
 
 def initialize_model():
     global model
-    
     if model is not None:
         print("Model already initialized")
         return model
-    
     print("Initializing ChatterboxTTS model...")
-    model = ChatterboxTTS.from_pretrained(device="cuda")
+    import torch
+    print("CUDA available:", torch.cuda.is_available())
+    print("CUDA device count:", torch.cuda.device_count())
+    model = ChatterboxTTS.from_pretrained(device="cuda")  # Use GPU here!
     print("Model initialized")
+
 
 def download_youtube_audio(url, output_path="./downloads", audio_format="mp3", duration_limit=60):
     """
