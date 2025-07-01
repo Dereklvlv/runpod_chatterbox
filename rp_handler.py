@@ -13,27 +13,15 @@ model = None
 output_filename = "output.wav"
 
 def handler(event, responseFormat="base64"):
-    input = event['input']
-    prompt = input.get('prompt')
-    yt_url = input.get('yt_url')
-    audio_b64 = input.get('audio_base64')
+    input = event['input']    
+    prompt = input.get('prompt')  
+    yt_url = input.get('yt_url')  
 
     print(f"New request. Prompt: {prompt}")
-
+    
     try:
-        # ---- PATCH: Support both YT and direct file ----
-        if audio_b64:
-            # Save base64 to temp WAV file
-            audio_bytes = base64.b64decode(audio_b64)
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_wav:
-                temp_wav.write(audio_bytes)
-                wav_file = temp_wav.name
-        elif yt_url:
-            # Download from YouTube as before
-            dl_info, wav_file = download_youtube_audio(yt_url, output_path="./my_audio", audio_format="wav")
-        else:
-            raise ValueError("Must provide either yt_url or audio_base64.")
-        # ---- END PATCH ----
+        # Download audio from YT, cut at 60s by default
+        dl_info, wav_file = download_youtube_audio(yt_url, output_path="./my_audio", audio_format="wav")
 
         # Prompt Chatterbox
         audio_tensor = model.generate(
@@ -46,12 +34,13 @@ def handler(event, responseFormat="base64"):
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        return f"{e}"
+        return f"{e}" 
 
     # Convert to base64 string
     audio_base64 = audio_tensor_to_base64(audio_tensor, model.sr)
 
     if responseFormat == "base64":
+        # Return base64
         response = {
             "status": "success",
             "audio_base64": audio_base64,
@@ -63,15 +52,16 @@ def handler(event, responseFormat="base64"):
     elif responseFormat == "binary":
         with open(output_filename, 'rb') as f:
             audio_data = base64.b64encode(f.read()).decode('utf-8')
+        
+        # Clean up the file
         os.remove(output_filename)
-        response = audio_data
+        
+        response = audio_data  # Just return the base64 string
 
     # Clean up temporary files
-    if os.path.exists(wav_file):
-        os.remove(wav_file)
+    os.remove(wav_file)
 
-    return response
-
+    return response 
 
 def audio_tensor_to_base64(audio_tensor, sample_rate):
     """Convert audio tensor to base64 encoded WAV data."""
